@@ -1,65 +1,214 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { Zap, Trophy, Settings, BarChart2 } from 'lucide-react'
+import { Button, XPCounter, LevelIndicator, StreakFlame } from '@/components/atoms'
+import { ExerciseCard, StatsCard } from '@/components/molecules'
+import { useUserStore } from '@/stores/useUserStore'
+import { staggerContainer, staggerItem } from '@/lib/animations'
+import type { ExerciseType } from '@/schemas/user'
+
+export default function DashboardPage() {
+  const router = useRouter()
+  const {
+    profile,
+    hasCompletedOnboarding,
+    baselineWPM,
+    currentWPM,
+    xp,
+    level,
+    streak,
+    exercises,
+  } = useUserStore()
+
+  useEffect(() => {
+    if (!hasCompletedOnboarding || !profile) {
+      router.push('/onboarding')
+    } else if (baselineWPM === 0) {
+      router.push('/baseline')
+    }
+  }, [hasCompletedOnboarding, profile, baselineWPM, router])
+
+  if (!profile || !hasCompletedOnboarding || baselineWPM === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-foreground-muted">Loading...</div>
+      </div>
+    )
+  }
+
+  const totalSessions = Object.values(exercises).reduce((sum, ex) => sum + ex.sessions, 0)
+  const improvement = baselineWPM > 0 ? Math.round(((currentWPM - baselineWPM) / baselineWPM) * 100) : 0
+
+  const handleExerciseClick = (exerciseId: ExerciseType) => {
+    const routes: Record<ExerciseType, string> = {
+      pointerWand: '/exercise/pointer-wand',
+      silentShadow: '/exercise/silent-shadow',
+      sideScanner: '/exercise/side-scanner',
+      timeBoss: '/exercise/time-boss',
+    }
+    router.push(routes[exerciseId])
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-surface border-b border-border sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-foreground">
+                Hey, {profile.name}!
+              </h1>
+              <p className="text-sm text-foreground-secondary">
+                Ready to train your super eyes?
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <StreakFlame streak={streak} size="sm" />
+              <LevelIndicator level={level} xp={xp} size="sm" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/settings')}
+              >
+                <Settings className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+      </header>
+
+      <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+        {/* Quick Stats */}
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        >
+          <motion.div variants={staggerItem}>
+            <StatsCard
+              icon={Zap}
+              label="Current Speed"
+              value={`${currentWPM}`}
+              subValue="WPM"
+              color="blue"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </motion.div>
+          <motion.div variants={staggerItem}>
+            <StatsCard
+              icon={BarChart2}
+              label="Improvement"
+              value={`${improvement > 0 ? '+' : ''}${improvement}%`}
+              subValue={`from ${baselineWPM} WPM`}
+              color={improvement > 0 ? 'green' : 'orange'}
+            />
+          </motion.div>
+          <motion.div variants={staggerItem}>
+            <StatsCard
+              icon={Trophy}
+              label="Total Sessions"
+              value={totalSessions}
+              color="gold"
+            />
+          </motion.div>
+          <motion.div variants={staggerItem}>
+            <div className="p-4 rounded-xl bg-surface border border-border">
+              <XPCounter amount={xp} size="lg" />
+              <p className="text-sm text-foreground-muted mt-1">Total XP</p>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Exercise Cards */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground">
+              Speed Reading Powers
+            </h2>
+          </div>
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+            className="grid gap-4 md:grid-cols-2"
           >
-            Documentation
-          </a>
+            <motion.div variants={staggerItem}>
+              <ExerciseCard
+                exerciseId="pointerWand"
+                sessions={exercises.pointerWand.sessions}
+                bestWPM={exercises.pointerWand.bestWPM}
+                onClick={() => handleExerciseClick('pointerWand')}
+              />
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <ExerciseCard
+                exerciseId="silentShadow"
+                sessions={exercises.silentShadow.sessions}
+                bestWPM={exercises.silentShadow.bestWPM}
+                onClick={() => handleExerciseClick('silentShadow')}
+              />
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <ExerciseCard
+                exerciseId="sideScanner"
+                sessions={exercises.sideScanner.sessions}
+                bestWPM={exercises.sideScanner.bestWPM}
+                onClick={() => handleExerciseClick('sideScanner')}
+              />
+            </motion.div>
+            <motion.div variants={staggerItem}>
+              <ExerciseCard
+                exerciseId="timeBoss"
+                sessions={exercises.timeBoss.sessions}
+                bestWPM={exercises.timeBoss.bestWPM}
+                onClick={() => handleExerciseClick('timeBoss')}
+              />
+            </motion.div>
+          </motion.div>
+        </section>
+
+        {/* Quick Actions */}
+        <section className="grid gap-4 md:grid-cols-3">
+          <Button
+            variant="outline"
+            size="lg"
+            className="h-auto py-4 flex-col gap-2"
+            onClick={() => router.push('/progress')}
+          >
+            <BarChart2 className="w-6 h-6 text-tisa-blue" />
+            <span>View Progress</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            className="h-auto py-4 flex-col gap-2"
+            onClick={() => router.push('/badges')}
+          >
+            <Trophy className="w-6 h-6 text-xp-gold" />
+            <span>My Badges</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            className="h-auto py-4 flex-col gap-2"
+            onClick={() => router.push('/speed-duel')}
+          >
+            <Zap className="w-6 h-6 text-streak-orange" />
+            <span>Speed Duel</span>
+          </Button>
+        </section>
+
+        {/* Motivational Footer */}
+        <div className="text-center py-8">
+          <p className="text-foreground-muted text-sm">
+            Every session makes your reading superpowers stronger!
+          </p>
         </div>
       </main>
     </div>
-  );
+  )
 }

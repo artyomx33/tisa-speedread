@@ -1,26 +1,110 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Neutral Beige/Warm Light Theme - Easy on the eyes */
+  --background: #FAF8F5;
+  --background-secondary: #F5F2ED;
+  --surface: #FFFFFF;
+  --surface-secondary: #FBF9F7;
+
+  /* Text Colors */
+  --foreground: #2D2A26;
+  --foreground-secondary: #6B6560;
+  --foreground-muted: #9B9590;
+
+  /* TISA Accent Colors (used sparingly) */
+  --tisa-blue: #1E3A5F;
+  --tisa-red: #B22234;
+  --tisa-purple: #6B3FA0;
+
+  /* Exercise Colors */
+  --pointer-wand: #4A90D9;
+  --silent-shadow: #9B6DD9;
+  --side-scanner: #4CAF7A;
+  --time-boss: #E5A84B;
+
+  /* Gamification */
+  --xp-gold: #D4A853;
+  --streak-orange: #E07A4B;
+  --level-purple: #8B6DC9;
+
+  /* Status Colors */
+  --success: #4CAF7A;
+  --warning: #E5A84B;
+  --error: #D45D5D;
+  --info: #4A90D9;
+
+  /* Borders */
+  --border: #E8E4DE;
+  --border-secondary: #D9D4CC;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-secondary: var(--background-secondary);
+  --color-surface: var(--surface);
+  --color-surface-secondary: var(--surface-secondary);
   --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-border: var(--border);
+  --color-border-secondary: var(--border-secondary);
+
+  --color-tisa-blue: var(--tisa-blue);
+  --color-tisa-red: var(--tisa-red);
+  --color-tisa-purple: var(--tisa-purple);
+
+  --color-pointer-wand: var(--pointer-wand);
+  --color-silent-shadow: var(--silent-shadow);
+  --color-side-scanner: var(--side-scanner);
+  --color-time-boss: var(--time-boss);
+
+  --color-xp-gold: var(--xp-gold);
+  --color-streak-orange: var(--streak-orange);
+  --color-level-purple: var(--level-purple);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Reading text optimized for speed reading */
+.reading-text {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  line-height: 2;
+  letter-spacing: 0.01em;
+  max-width: 60ch;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--tisa-blue);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
