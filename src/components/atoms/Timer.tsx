@@ -34,15 +34,14 @@ export function Timer({
 }: TimerProps) {
   const [remaining, setRemaining] = useState(duration)
   const [hasCompleted, setHasCompleted] = useState(false)
+  const [prevDuration, setPrevDuration] = useState(duration)
 
-  const reset = useCallback(() => {
+  // Reset when duration changes - using derived state pattern
+  if (duration !== prevDuration) {
     setRemaining(duration)
     setHasCompleted(false)
-  }, [duration])
-
-  useEffect(() => {
-    reset()
-  }, [duration, reset])
+    setPrevDuration(duration)
+  }
 
   useEffect(() => {
     if (!isRunning || hasCompleted) return

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, TrendingUp, Target, Clock } from 'lucide-react'
@@ -8,11 +8,17 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Button, ProgressBar } from '@/components/atoms'
 import { StatsCard } from '@/components/molecules'
 import { useUserStore } from '@/stores/useUserStore'
-import { slideUp, staggerContainer, staggerItem } from '@/lib/animations'
+import { staggerContainer, staggerItem } from '@/lib/animations'
 
 export default function ProgressPage() {
   const router = useRouter()
   const { profile, baselineWPM, currentWPM, wpmHistory, exercises } = useUserStore()
+  const [isChartMounted, setIsChartMounted] = useState(false)
+
+  // Delay chart rendering until after hydration to avoid width/height -1 warning
+  useEffect(() => {
+    setIsChartMounted(true)
+  }, [])
 
   const chartData = useMemo(() => {
     return wpmHistory.slice(-20).map((record, index) => ({
@@ -96,8 +102,8 @@ export default function ProgressPage() {
             className="bg-surface p-6 rounded-2xl border border-border"
           >
             <h2 className="font-semibold text-foreground mb-4">Speed Over Time</h2>
-            {chartData.length > 1 ? (
-              <div className="h-64">
+            {chartData.length > 1 && isChartMounted ? (
+              <div className="h-64 min-h-[256px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E8E4DE" />
@@ -123,7 +129,9 @@ export default function ProgressPage() {
               </div>
             ) : (
               <div className="h-64 flex items-center justify-center text-foreground-muted">
-                Complete more sessions to see your progress chart!
+                {chartData.length <= 1
+                  ? "Complete more sessions to see your progress chart!"
+                  : "Loading chart..."}
               </div>
             )}
           </motion.div>

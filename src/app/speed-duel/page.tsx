@@ -12,7 +12,7 @@ import { getWeekStart } from '@/lib/utils'
 
 export default function SpeedDuelPage() {
   const router = useRouter()
-  const { profile, weeklyDuels, wpmHistory, currentWPM, level } = useUserStore()
+  const { profile, weeklyDuels, wpmHistory, level } = useUserStore()
 
   const isUnlocked = level >= 2
 

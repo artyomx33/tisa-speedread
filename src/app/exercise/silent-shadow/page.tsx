@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, ArrowLeft, Trophy, RotateCcw, Info, Check } from 'lucide-react'
@@ -13,61 +13,38 @@ import { getExerciseConfig } from '@/config/exercises'
 import { slideUp } from '@/lib/animations'
 
 type Phase = 'instructions' | 'reading' | 'results'
-type CountSpeed = 'slow' | 'medium' | 'fast'
-
-const countSpeeds: Record<CountSpeed, number> = {
-  slow: 2000,
-  medium: 1500,
-  fast: 1000,
-}
 
 export default function SilentShadowPage() {
   const router = useRouter()
   const { profile, exercises, completeExercise } = useUserStore()
-  const { generateForTopics, isLoading: isGenerating } = useTextGenerator()
+  const { generateMediumText, isLoading: isGenerating } = useTextGenerator()
   const config = getExerciseConfig('silentShadow')
 
   const [phase, setPhase] = useState<Phase>('instructions')
   const [text, setText] = useState('')
-  const [countNumber, setCountNumber] = useState(1)
-  const [countSpeed, setCountSpeed] = useState<CountSpeed>('medium')
   const [isRunning, setIsRunning] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [xpEarned, setXpEarned] = useState(0)
 
   const totalWords = countWords(text)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (!profile) {
       router.push('/onboarding')
       return
     }
-    generateForTopics(profile.topics, profile.age).then(setText)
-  }, [profile, generateForTopics, router])
+    generateMediumText(profile.topics, profile.age).then(setText)
+  }, [profile, generateMediumText, router])
 
   const handleStart = useCallback(() => {
     setPhase('reading')
-    setCountNumber(1)
     setStartTime(Date.now())
     setIsRunning(true)
   }, [])
 
-  useEffect(() => {
-    if (!isRunning) return
-
-    intervalRef.current = setInterval(() => {
-      setCountNumber(prev => (prev % 4) + 1)
-    }, countSpeeds[countSpeed])
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [isRunning, countSpeed])
 
   const handleFinish = useCallback(() => {
     setIsRunning(false)
-    if (intervalRef.current) clearInterval(intervalRef.current)
 
     const elapsed = (Date.now() - (startTime || Date.now())) / 1000
     // For silent shadow, we don't calculate WPM strictly - it's about the technique
@@ -80,12 +57,11 @@ export default function SilentShadowPage() {
 
   const handleRetry = useCallback(async () => {
     if (profile) {
-      const newText = await generateForTopics(profile.topics, profile.age)
+      const newText = await generateMediumText(profile.topics, profile.age)
       setText(newText)
     }
     setPhase('instructions')
-    setCountNumber(1)
-  }, [profile, generateForTopics])
+  }, [profile, generateMediumText])
 
   if (!profile) return null
 
@@ -153,25 +129,6 @@ export default function SilentShadowPage() {
                 </ul>
               </div>
 
-              <div className="bg-surface p-4 rounded-xl border border-border">
-                <h3 className="font-medium text-foreground mb-3">Count Speed</h3>
-                <div className="flex gap-2">
-                  {(['slow', 'medium', 'fast'] as CountSpeed[]).map((speed) => (
-                    <button
-                      key={speed}
-                      onClick={() => setCountSpeed(speed)}
-                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                        countSpeed === speed
-                          ? 'bg-silent-shadow text-white'
-                          : 'bg-background-secondary text-foreground-secondary hover:bg-border'
-                      }`}
-                    >
-                      {speed.charAt(0).toUpperCase() + speed.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div className="bg-background-secondary p-4 rounded-xl">
                 <h3 className="font-medium text-foreground mb-2">Tips</h3>
                 <ul className="space-y-1 text-sm text-foreground-secondary">
@@ -218,8 +175,6 @@ export default function SilentShadowPage() {
               <ReadingPane
                 text={text}
                 mode="silent"
-                countNumber={countNumber}
-                countPosition="corner"
               />
 
               <div className="flex justify-center">

@@ -40,7 +40,16 @@ export function ReadingPane({
   fontSize = 'md',
   className,
 }: ReadingPaneProps) {
-  const lines = useMemo(() => splitIntoLines(text, 60), [text])
+  // For side-scan mode, use shorter lines (50 chars) for better peripheral vision training
+  // For other modes, let text flow naturally as paragraphs
+  const lines = useMemo(() => {
+    if (mode === 'side-scan') {
+      return splitIntoLines(text, 50)
+    }
+    // For other modes, split by natural paragraph breaks or treat as single block
+    // This allows text to flow and fill the container width naturally
+    return text.split(/\n\n+/).filter(p => p.trim())
+  }, [text, mode])
   const [hoveredWord, setHoveredWord] = useState<number | null>(null)
 
   const getAllWords = useCallback(() => {
@@ -89,7 +98,6 @@ export function ReadingPane({
     <div
       className={cn(
         'relative p-6 bg-surface rounded-2xl border border-border',
-        'max-w-[700px] mx-auto',
         className
       )}
     >
@@ -97,11 +105,11 @@ export function ReadingPane({
       {mode === 'side-scan' && showGuides && (
         <>
           <div
-            className="absolute top-0 bottom-0 left-[15%] w-0.5 bg-side-scanner"
+            className="absolute top-0 bottom-0 left-[24%] w-0.5 bg-side-scanner"
             style={{ opacity: guideOpacity }}
           />
           <div
-            className="absolute top-0 bottom-0 right-[15%] w-0.5 bg-side-scanner"
+            className="absolute top-0 bottom-0 right-[24%] w-0.5 bg-side-scanner"
             style={{ opacity: guideOpacity }}
           />
         </>
@@ -136,10 +144,7 @@ export function ReadingPane({
           const wordsInLine = line.split(/\s+/).filter(w => w.trim())
 
           return (
-            <div
-              key={lineIndex}
-              className="flex flex-wrap gap-x-2 mb-2"
-            >
+            <p key={lineIndex} className="mb-1">
               {wordsInLine.map((word, wordInLine) => {
                 const globalIndex = getWordIndex(lineIndex, wordInLine)
                 const highlighted = isWordHighlighted(globalIndex)
@@ -148,32 +153,34 @@ export function ReadingPane({
                 const isClickable = mode === 'time-boss'
 
                 return (
-                  <motion.span
-                    key={`${lineIndex}-${wordInLine}`}
-                    className={cn(
-                      'relative px-0.5 py-0.5 rounded transition-all',
-                      highlighted && 'bg-pointer-wand/30',
-                      greyed && 'text-foreground-muted/40',
-                      isClickable && !greyed && 'cursor-pointer hover:bg-background-secondary',
-                      isHovered && isClickable && 'bg-time-boss/20'
-                    )}
-                    onClick={() => handleWordClick(globalIndex)}
-                    onMouseEnter={() => isClickable && setHoveredWord(globalIndex)}
-                    onMouseLeave={() => setHoveredWord(null)}
-                    animate={
-                      highlighted
-                        ? {
-                            backgroundColor: ['rgba(74, 144, 217, 0)', 'rgba(74, 144, 217, 0.3)', 'rgba(74, 144, 217, 0)'],
-                          }
-                        : {}
-                    }
-                    transition={{ duration: 0.3 }}
-                  >
-                    {word}
-                  </motion.span>
+                  <span key={`${lineIndex}-${wordInLine}`}>
+                    <motion.span
+                      className={cn(
+                        'relative rounded transition-all',
+                        highlighted && 'bg-pointer-wand/30 px-0.5',
+                        greyed && 'text-foreground-muted/40',
+                        isClickable && !greyed && 'cursor-pointer hover:bg-background-secondary',
+                        isHovered && isClickable && 'bg-time-boss/20'
+                      )}
+                      onClick={() => handleWordClick(globalIndex)}
+                      onMouseEnter={() => isClickable && setHoveredWord(globalIndex)}
+                      onMouseLeave={() => setHoveredWord(null)}
+                      animate={
+                        highlighted
+                          ? {
+                              backgroundColor: ['rgba(74, 144, 217, 0)', 'rgba(74, 144, 217, 0.3)', 'rgba(74, 144, 217, 0)'],
+                            }
+                          : {}
+                      }
+                      transition={{ duration: 0.3 }}
+                    >
+                      {word}
+                    </motion.span>
+                    {wordInLine < wordsInLine.length - 1 && ' '}
+                  </span>
                 )
               })}
-            </div>
+            </p>
           )
         })}
       </div>

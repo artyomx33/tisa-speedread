@@ -18,7 +18,7 @@ type Phase = 'instructions' | 'reading' | 'results'
 export default function SideScannerPage() {
   const router = useRouter()
   const { profile, exercises, completeExercise, settings, updateSettings } = useUserStore()
-  const { generateForTopics, isLoading: isGenerating } = useTextGenerator()
+  const { generateMediumText, isLoading: isGenerating } = useTextGenerator()
   const config = getExerciseConfig('sideScanner')
 
   const [phase, setPhase] = useState<Phase>('instructions')
@@ -38,8 +38,8 @@ export default function SideScannerPage() {
       router.push('/onboarding')
       return
     }
-    generateForTopics(profile.topics, profile.age).then(setText)
-  }, [profile, generateForTopics, router])
+    generateMediumText(profile.topics, profile.age).then(setText)
+  }, [profile, generateMediumText, router])
 
   const handleStart = useCallback(() => {
     setPhase('reading')
@@ -61,12 +61,12 @@ export default function SideScannerPage() {
 
   const handleRetry = useCallback(async () => {
     if (profile) {
-      const newText = await generateForTopics(profile.topics, profile.age)
+      const newText = await generateMediumText(profile.topics, profile.age)
       setText(newText)
     }
     setPhase('instructions')
     setWpm(0)
-  }, [profile, generateForTopics])
+  }, [profile, generateMediumText])
 
   const handleToggleGuides = () => {
     const newValue = !showGuides

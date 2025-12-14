@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Play, ArrowLeft, Trophy, RotateCcw, Info } from 'lucide-react'
+import { Play, ArrowLeft, Trophy, RotateCcw, Info, Target } from 'lucide-react'
 import { Button, ProgressBar } from '@/components/atoms'
 import { WPMDisplay } from '@/components/molecules'
 import { ReadingPane } from '@/components/organisms/ReadingPane'
@@ -15,10 +15,12 @@ import { slideUp } from '@/lib/animations'
 
 type Phase = 'instructions' | 'reading' | 'results'
 
+const WPM_PRESETS = [150, 250, 350, 500, 650, 800, 1000]
+
 export default function PointerWandPage() {
   const router = useRouter()
-  const { profile, exercises, completeExercise, settings } = useUserStore()
-  const { generateForTopics, isLoading: isGenerating } = useTextGenerator()
+  const { profile, exercises, completeExercise } = useUserStore()
+  const { generateMediumText, isLoading: isGenerating } = useTextGenerator()
   const config = getExerciseConfig('pointerWand')
 
   const [phase, setPhase] = useState<Phase>('instructions')
@@ -29,6 +31,9 @@ export default function PointerWandPage() {
   const [wpm, setWpm] = useState(0)
   const [xpEarned, setXpEarned] = useState(0)
   const [beatPB, setBeatPB] = useState(false)
+  // Initialize target WPM from user's best WPM or default to 150
+  const initialTargetWPM = exercises.pointerWand.bestWPM > 0 ? exercises.pointerWand.bestWPM : 150
+  const [targetWPM, setTargetWPM] = useState(initialTargetWPM)
 
   const totalWords = countWords(text)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -38,11 +43,12 @@ export default function PointerWandPage() {
       router.push('/onboarding')
       return
     }
-    generateForTopics(profile.topics, profile.age).then(setText)
-  }, [profile, generateForTopics, router])
+    generateMediumText(profile.topics, profile.age).then(setText)
+  }, [profile, generateMediumText, router])
 
-  const baseSpeed = 250 // ms per word at speed 1
-  const adjustedSpeed = baseSpeed / settings.pointerSpeed
+  // Calculate ms per word based on target WPM
+  // WPM = words / (ms / 60000) => ms per word = 60000 / WPM
+  const msPerWord = 60000 / targetWPM
 
   const handleStart = useCallback(() => {
     setPhase('reading')
@@ -73,22 +79,22 @@ export default function PointerWandPage() {
         }
         return prev + 1
       })
-    }, adjustedSpeed)
+    }, msPerWord)
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [isRunning, totalWords, adjustedSpeed, startTime, completeExercise])
+  }, [isRunning, totalWords, msPerWord, startTime, completeExercise])
 
   const handleRetry = useCallback(async () => {
     if (profile) {
-      const newText = await generateForTopics(profile.topics, profile.age)
+      const newText = await generateMediumText(profile.topics, profile.age)
       setText(newText)
     }
     setPhase('instructions')
     setWordIndex(0)
     setWpm(0)
-  }, [profile, generateForTopics])
+  }, [profile, generateMediumText])
 
   const progress = totalWords > 0 ? (wordIndex / totalWords) * 100 : 0
 
@@ -138,6 +144,57 @@ export default function PointerWandPage() {
                 </p>
               </div>
 
+              {/* WPM Goal Selector */}
+              <div className="bg-surface p-6 rounded-2xl border border-border">
+                <div className="flex items-center gap-2 mb-4">
+                  <Target className="w-5 h-5 text-pointer-wand" />
+                  <h2 className="font-semibold text-foreground">Set Your WPM Goal</h2>
+                </div>
+                <p className="text-sm text-foreground-secondary mb-4">
+                  The pointer will move at this speed. Challenge yourself!
+                </p>
+
+                <div className="space-y-4">
+                  {/* Preset buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    {WPM_PRESETS.map((preset) => (
+                      <button
+                        key={preset}
+                        onClick={() => setTargetWPM(preset)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          targetWPM === preset
+                            ? 'bg-pointer-wand text-white'
+                            : 'bg-background-secondary text-foreground-secondary hover:bg-border'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom slider */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-foreground-muted">Custom speed</span>
+                      <span className="text-lg font-bold text-pointer-wand">{targetWPM} WPM</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={50}
+                      max={1200}
+                      step={10}
+                      value={targetWPM}
+                      onChange={(e) => setTargetWPM(Number(e.target.value))}
+                      className="w-full accent-pointer-wand"
+                    />
+                    <div className="flex justify-between text-xs text-foreground-muted mt-1">
+                      <span>50 (beginner)</span>
+                      <span>1200 (pro)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-surface p-6 rounded-2xl border border-border">
                 <div className="flex items-center gap-2 mb-4">
                   <Info className="w-5 h-5 text-tisa-blue" />
@@ -183,7 +240,7 @@ export default function PointerWandPage() {
                 isLoading={isGenerating}
                 leftIcon={<Play className="w-5 h-5" />}
               >
-                Start Exercise
+                Start at {targetWPM} WPM
               </Button>
             </motion.div>
           )}
@@ -199,10 +256,17 @@ export default function PointerWandPage() {
               className="space-y-6"
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm text-foreground-muted">
-                  Word {wordIndex + 1} of {totalWords}
-                </span>
-                <ProgressBar progress={progress} size="sm" color="blue" />
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-foreground-muted">
+                    Word {wordIndex + 1} of {totalWords}
+                  </span>
+                  <span className="text-sm font-medium text-pointer-wand">
+                    Target: {targetWPM} WPM
+                  </span>
+                </div>
+                <div className="w-32">
+                  <ProgressBar progress={progress} size="sm" color="blue" />
+                </div>
               </div>
 
               <ReadingPane
@@ -241,7 +305,7 @@ export default function PointerWandPage() {
                   {beatPB ? 'New Personal Best!' : 'Great Practice!'}
                 </h1>
                 <p className="text-foreground-secondary">
-                  You followed the pointer through {totalWords} words
+                  You followed the pointer at {targetWPM} WPM through {totalWords} words
                 </p>
               </div>
 
@@ -251,6 +315,9 @@ export default function PointerWandPage() {
                   previousWPM={exercises.pointerWand.bestWPM}
                   showTrend={exercises.pointerWand.sessions > 1}
                 />
+                <p className="text-sm text-foreground-muted mt-2">
+                  Target was {targetWPM} WPM
+                </p>
               </div>
 
               <div className="bg-tisa-blue/5 p-4 rounded-xl max-w-md mx-auto">

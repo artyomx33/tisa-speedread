@@ -9,7 +9,7 @@ import { WPMDisplay } from '@/components/molecules'
 import { ReadingPane } from '@/components/organisms/ReadingPane'
 import { useUserStore } from '@/stores/useUserStore'
 import { useTextGenerator } from '@/hooks/useTextGenerator'
-import { countWords, calculateWPM, formatTime } from '@/lib/utils'
+import { calculateWPM, formatTime } from '@/lib/utils'
 import { getExerciseConfig } from '@/config/exercises'
 import { slideUp } from '@/lib/animations'
 
@@ -33,7 +33,7 @@ const roundDescriptions: Record<Round, string> = {
 export default function TimeBossPage() {
   const router = useRouter()
   const { profile, exercises, completeExercise } = useUserStore()
-  const { generateForTopics, isLoading: isGenerating } = useTextGenerator()
+  const { generateLongText, isLoading: isGenerating } = useTextGenerator()
   const config = getExerciseConfig('timeBoss')
 
   const [phase, setPhase] = useState<Phase>('instructions')
@@ -47,22 +47,16 @@ export default function TimeBossPage() {
   const [xpEarned, setXpEarned] = useState(0)
   const [beatPB, setBeatPB] = useState(false)
 
-  const totalWords = countWords(text)
-  const startTimeRef = useRef<number>(Date.now())
+  const startTimeRef = useRef<number>(0)
 
   useEffect(() => {
     if (!profile) {
       router.push('/onboarding')
       return
     }
-    // Generate longer text for Time Boss
-    generateForTopics(profile.topics, profile.age).then(generatedText => {
-      // Concatenate to get more text
-      generateForTopics(profile.topics, profile.age).then(moreText => {
-        setText(generatedText + ' ' + moreText)
-      })
-    })
-  }, [profile, generateForTopics, router])
+    // Generate longer text for Time Boss (3 combined texts for 10-minute challenge)
+    generateLongText(profile.topics, profile.age).then(setText)
+  }, [profile, generateLongText, router])
 
   const handleStart = useCallback(() => {
     setPhase('reading')
@@ -99,7 +93,6 @@ export default function TimeBossPage() {
       startTimeRef.current = Date.now()
     } else {
       // All rounds complete
-      const elapsed = (Date.now() - startTimeRef.current) / 1000
       const calculatedWPM = calculateWPM(wordIndex + 1, roundDurations[4])
       setWpm(calculatedWPM)
 
@@ -113,9 +106,8 @@ export default function TimeBossPage() {
 
   const handleRetry = useCallback(async () => {
     if (profile) {
-      const text1 = await generateForTopics(profile.topics, profile.age)
-      const text2 = await generateForTopics(profile.topics, profile.age)
-      setText(text1 + ' ' + text2)
+      const newText = await generateLongText(profile.topics, profile.age)
+      setText(newText)
     }
     setPhase('instructions')
     setRound(1)
@@ -123,7 +115,7 @@ export default function TimeBossPage() {
     setRoundResults([])
     setTimeUp(false)
     setWpm(0)
-  }, [profile, generateForTopics])
+  }, [profile, generateLongText])
 
   const successfulRounds = roundResults.filter(r => r.reachedTarget).length
 
